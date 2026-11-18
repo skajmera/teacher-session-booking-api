@@ -1,0 +1,337 @@
+{
+  "info": {
+    "_postman_id": "a9b2c8d1-7e4f-4d2a-9e1b-3c4d5e6f7a8b",
+    "name": "Teacher Session Booking API",
+    "description": "Production-grade Postman Collection for testing the Teacher Session Booking REST API built with Node.js, TypeScript, Express, and MongoDB.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "teacherId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "currentTimestamp",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "0. Create Teacher (Setup Helper)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "if (response.success && response.data && response.data._id) {",
+              "    pm.collectionVariables.set('teacherId', response.data._id);",
+              "    console.log('Saved teacherId:', response.data._id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Prof. Robert Oppenheimer\",\n  \"email\": \"oppenheimer@example.com\",\n  \"specialization\": \"Theoretical Physics\",\n  \"experience\": 15\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/teachers",
+          "host": ["{{baseUrl}}"],
+          "path": ["teachers"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API 1 - Create User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "if (response.success && response.data && response.data._id) {",
+              "    pm.collectionVariables.set('userId', response.data._id);",
+              "    console.log('Saved userId:', response.data._id);",
+              "}",
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test('User created with unique email', function () {",
+              "    pm.expect(response.success).to.eql(true);",
+              "    pm.expect(response.data.email).to.eql('johndoe@example.com');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"johndoe@example.com\",\n  \"phone\": \"+1-9876543210\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["users"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API 2 - Create Session",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const now = new Date();",
+              "const tomorrow = new Date(now.getTime() + 86400000);",
+              "tomorrow.setUTCHours(10, 0, 0, 0);",
+              "const tomorrowEnd = new Date(tomorrow.getTime() + 3600000);",
+              "pm.collectionVariables.set('sessionStartTime', tomorrow.toISOString());",
+              "pm.collectionVariables.set('sessionEndTime', tomorrowEnd.toISOString());",
+              "pm.collectionVariables.set('currentTimestamp', tomorrow.getTime().toString());"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "if (response.success && response.data && response.data._id) {",
+              "    pm.collectionVariables.set('sessionId', response.data._id);",
+              "    console.log('Saved sessionId:', response.data._id);",
+              "}",
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test('Default session status is AVAILABLE', function () {",
+              "    pm.expect(response.data.status).to.eql('AVAILABLE');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"teacherId\": \"{{teacherId}}\",\n  \"startTime\": \"{{sessionStartTime}}\",\n  \"endTime\": \"{{sessionEndTime}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sessions",
+          "host": ["{{baseUrl}}"],
+          "path": ["sessions"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API 3 - Available Sessions for Booking",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Returns array of available sessions via aggregation', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.eql(true);",
+              "    pm.expect(Array.isArray(response.data)).to.eql(true);",
+              "    if (response.data.length > 0) {",
+              "        pm.expect(response.data[0].status).to.eql('AVAILABLE');",
+              "        pm.expect(response.data[0]).to.have.property('teacher');",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/sessions/available?dateTimestamp={{currentTimestamp}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["sessions", "available"],
+          "query": [
+            {
+              "key": "dateTimestamp",
+              "value": "{{currentTimestamp}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API 4 - Book Session",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Session updated to BOOKED with userId associated', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.eql(true);",
+              "    pm.expect(response.data.status).to.eql('BOOKED');",
+              "    pm.expect(response.data.userId).to.eql(pm.collectionVariables.get('userId'));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{userId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sessions/{{sessionId}}/book",
+          "host": ["{{baseUrl}}"],
+          "path": ["sessions", "{{sessionId}}", "book"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API 5 - Mark Session Complete",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Session marked as COMPLETED with completedAt set', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.eql(true);",
+              "    pm.expect(response.data.status).to.eql('COMPLETED');",
+              "    pm.expect(response.data.completedAt).to.not.be.null;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/sessions/{{sessionId}}/complete",
+          "host": ["{{baseUrl}}"],
+          "path": ["sessions", "{{sessionId}}", "complete"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API 6 - User Session List",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response contains separated upcoming and completed sessions', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.eql(true);",
+              "    pm.expect(response.data).to.have.property('upcomingSessions');",
+              "    pm.expect(response.data).to.have.property('completedSessions');",
+              "    pm.expect(Array.isArray(response.data.upcomingSessions)).to.eql(true);",
+              "    pm.expect(Array.isArray(response.data.completedSessions)).to.eql(true);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users/{{userId}}/sessions",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "{{userId}}", "sessions"]
+        }
+      },
+      "response": []
+    }
+  ]
+}
